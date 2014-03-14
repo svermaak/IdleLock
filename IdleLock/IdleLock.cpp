@@ -178,10 +178,10 @@ HMENU hPopMenu = NULL;
 HINSTANCE hInstance = NULL;
 TWorkStationLocker *WorkStationLocker;
 
-ATOM				MyRegisterClass(HINSTANCE hInstance);
-BOOL				InitInstance(HINSTANCE, int);
+ATOM                MyRegisterClass(HINSTANCE hInstance);
+BOOL                InitInstance(HINSTANCE, int);
 HMENU               CreateIdleLockMenu();
-LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 void UpdateTrayIcon(TWorkStationLocker &workStationLocker);
 
 
