@@ -11,4 +11,4 @@ kicks in, no matter what ScreenSaverGracePeriod value you have specified. To rem
 flaw, I whipped up IdleLock, a small utility that locks your PC after a selectable time 
 of user inactivity.
 
-<a href="http://blog.wezeku.com/url will be here" target="_blank">See this blog post for more information.</a>
+<a href="http://blog.wezeku.com/2014/03/14/idlelock-a-utility-to-lock-your-pc-after-x-minutes-of-idle-time/" target="_blank">See this blog post for more information.</a>
