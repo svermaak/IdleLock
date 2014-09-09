@@ -171,14 +171,13 @@ bool TWorkStationLocker::ScreenSaverRunning()
 // -----------------------------------------------------------------------------
 
 #define MAX_LOADSTRING 100
-#define	WM_USER_SHELLICON WM_USER + 1
+#define WM_USER_SHELLICON WM_USER + 1
 
-NOTIFYICONDATA nidApp;
-TCHAR szTitle[MAX_LOADSTRING];
-TCHAR szWindowClass[MAX_LOADSTRING];
-TCHAR szApplicationToolTip[MAX_LOADSTRING];
-HMENU hPopMenu = NULL;
-HINSTANCE hInstance = NULL;
+NOTIFYICONDATA      nidApp;
+TCHAR               szTitle[MAX_LOADSTRING];
+TCHAR               szWindowClass[MAX_LOADSTRING];
+HMENU               hPopMenu = NULL;
+HINSTANCE           hInstance = NULL;
 TWorkStationLocker *WorkStationLocker;
 
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -258,7 +257,7 @@ BOOL InitInstance(HINSTANCE aHInstance, int nCmdShow)
 
     HWND hWnd;
     hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-       CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
+       CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, NULL, NULL, hInstance, NULL);
     
     if (!hWnd) {
         return FALSE;
