@@ -21,7 +21,7 @@
 
 static const int CheckTimeoutInterval = 30000;  // How often we check to see if it's time to lock.
 static const int DefaultTimeout = 20*60000;
-static const wchar_t *AppRegKeyName = _T("Software\\Wezeku\\IdleLock");
+static const wchar_t *AppRegKeyName = L"Software\\Wezeku\\IdleLock";
 static const int TrayIconUId = 100;
 
 
@@ -126,15 +126,15 @@ void TWorkStationLocker::ReadSettings()
     RegCreateKeyEx(HKEY_CURRENT_USER, AppRegKeyName, 0, NULL, 
         REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hKey, NULL);
 
-    idleTimeout = (RegQueryValueEx(hKey, _T("LockTimeout"), NULL, NULL, (LPBYTE) &regData, &dataLen) == ERROR_SUCCESS)
+    idleTimeout = (RegQueryValueEx(hKey, L"LockTimeout", NULL, NULL, (LPBYTE) &regData, &dataLen) == ERROR_SUCCESS)
         ? regData
         : DefaultTimeout;
 
-    requireScreenSaver = (RegQueryValueEx(hKey, _T("RequireScreenSaver"), NULL, NULL, (LPBYTE) &regData, &dataLen) == ERROR_SUCCESS)
+    requireScreenSaver = (RegQueryValueEx(hKey, L"RequireScreenSaver", NULL, NULL, (LPBYTE) &regData, &dataLen) == ERROR_SUCCESS)
         ? (regData != 0)
         : true;
 
-    enabled = (RegQueryValueEx(hKey, _T("Enabled"), NULL, NULL, (LPBYTE) &regData, &dataLen) == ERROR_SUCCESS)
+    enabled = (RegQueryValueEx(hKey, L"Enabled", NULL, NULL, (LPBYTE) &regData, &dataLen) == ERROR_SUCCESS)
         ? (regData != 0)
         : true;
 }
@@ -150,11 +150,11 @@ void TWorkStationLocker::WriteSettings()
         REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hKey, NULL);
 
     regData = idleTimeout;
-    RegSetValueEx(hKey, _T("LockTimeout"), 0, REG_DWORD, (BYTE *) &regData, dataLen);
+    RegSetValueEx(hKey, L"LockTimeout", 0, REG_DWORD, (BYTE *) &regData, dataLen);
     regData = requireScreenSaver;
-    RegSetValueEx(hKey, _T("RequireScreenSaver"), 0, REG_DWORD, (BYTE *) &regData, dataLen);
+    RegSetValueEx(hKey, L"RequireScreenSaver", 0, REG_DWORD, (BYTE *) &regData, dataLen);
     regData = enabled;
-    RegSetValueEx(hKey, _T("Enabled"), 0, REG_DWORD, (BYTE *) &regData, dataLen);
+    RegSetValueEx(hKey, L"Enabled", 0, REG_DWORD, (BYTE *) &regData, dataLen);
 }
 
 
@@ -270,7 +270,7 @@ BOOL InitInstance(HINSTANCE aHInstance, int nCmdShow)
     nidApp.uID              = TrayIconUId;
     nidApp.uFlags           = NIF_ICON | NIF_MESSAGE | NIF_TIP;
     nidApp.uCallbackMessage = WM_USER_SHELLICON; 
-    wcscpy_s(nidApp.szTip, _T("IdleLock"));
+    wcscpy_s(nidApp.szTip, L"IdleLock");
     Shell_NotifyIcon(NIM_ADD, &nidApp); 
     
     hPopMenu = CreateIdleLockMenu();
@@ -317,18 +317,18 @@ HMENU CreateIdleLockMenu()
     wchar_t menuItem[50];
     HMENU menu = CreatePopupMenu();
 
-    AppendMenu(menu, 0, 0, _T("Lock when the user has been inactive for:"));
+    AppendMenu(menu, 0, 0, L"Lock when the user has been inactive for:");
 
     // Add menu entries for 5..60 minutes lock timeout.
     for (int i = 5; i <= 60; i += 5) {
-        wsprintf(menuItem, _T("%d minutes"), i);
+        wsprintf(menuItem, L"%d minutes", i);
         AppendMenu(menu, 0, IDM_TIMEOUT + i, menuItem);
     }
 
-    AppendMenu(menu, MF_SEPARATOR, 0, _T("-"));				
-    AppendMenu(menu, 0, IDM_REQUIRESCREENSAVER, _T("&Only lock if screensaver is active"));
-    AppendMenu(menu, 0, IDM_DISABLE, _T("&Disable"));
-    AppendMenu(menu, 0, IDM_EXIT, _T("E&xit"));
+    AppendMenu(menu, MF_SEPARATOR, 0, L"-");				
+    AppendMenu(menu, 0, IDM_REQUIRESCREENSAVER, L"&Only lock if screensaver is active");
+    AppendMenu(menu, 0, IDM_DISABLE, L"&Disable");
+    AppendMenu(menu, 0, IDM_EXIT, L"E&xit");
 
     return menu;
 }
