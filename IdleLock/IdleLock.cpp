@@ -285,8 +285,13 @@ BOOL InitInstance(HINSTANCE aHInstance, int nCmdShow)
 
 void UpdateTrayIcon(TWorkStationLocker &workStationLocker)
 {
+    if (workStationLocker.Enabled())
+        swprintf_s(nidApp.szTip, sizeof nidApp.szTip, L"IdleLock - %d minutes", workStationLocker.GetTimeout() / 60000);
+    else
+        swprintf_s(nidApp.szTip, sizeof nidApp.szTip, L"IdleLock - Disabled", workStationLocker.GetTimeout() / 60000);
+
     nidApp.hIcon = LoadTrayIcon(workStationLocker.Enabled() ? IDI_IDLELOCK : IDI_IDLELOCKOPEN);
-    nidApp.uFlags = NIF_ICON;
+    nidApp.uFlags = NIF_ICON | NIF_TIP;
     Shell_NotifyIcon(NIM_MODIFY, &nidApp);
 }
 
@@ -361,8 +366,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             wmEvent = HIWORD(wParam);
             // Parse the menu selections:
             switch (wmId) {
-            case IDM_REQUIRESCREENSAVER:
-                WorkStationLocker->RequireScreensaver(!WorkStationLocker->IsScreenSaverRequired());
+                case IDM_REQUIRESCREENSAVER:
+                    WorkStationLocker->RequireScreensaver(!WorkStationLocker->IsScreenSaverRequired());
                     break;
 
                 case IDM_DISABLE:
@@ -382,6 +387,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
                         int timeout = (wmId - IDM_TIMEOUT) * 60000;
                         WorkStationLocker->SetTimeout(timeout);
+                        UpdateTrayIcon(*WorkStationLocker);
                     }
 
                     return DefWindowProc(hWnd, message, wParam, lParam);
