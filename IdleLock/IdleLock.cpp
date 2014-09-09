@@ -11,8 +11,11 @@
 
 
 #include "stdafx.h"
-
 #include "IdleLock.h"
+
+// Needs CommCtrl v6 for LoadIconMetric().
+#pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#include "Commctrl.h"
 
 // -----------------------------------------------------------------------------
 
@@ -182,7 +185,9 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 HMENU               CreateIdleLockMenu();
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
-void UpdateTrayIcon(TWorkStationLocker &workStationLocker);
+void                UpdateTrayIcon(TWorkStationLocker &workStationLocker);
+HICON               LoadTrayIcon(int resourceId);
+BOOL                IsWinVistaOrLater();
 
 
 
@@ -260,7 +265,7 @@ BOOL InitInstance(HINSTANCE aHInstance, int nCmdShow)
     }
     
     nidApp.cbSize           = sizeof(NOTIFYICONDATA);
-    nidApp.hIcon            = LoadIcon(hInstance, (LPCTSTR)MAKEINTRESOURCE(IDI_IDLELOCK)); 
+    nidApp.hIcon            = LoadTrayIcon(IDI_IDLELOCK); 
     nidApp.hWnd             = (HWND) hWnd;     // The window which will process this apps messages.
     nidApp.uID              = TrayIconUId;
     nidApp.uFlags           = NIF_ICON | NIF_MESSAGE | NIF_TIP;
@@ -280,10 +285,25 @@ BOOL InitInstance(HINSTANCE aHInstance, int nCmdShow)
 
 void UpdateTrayIcon(TWorkStationLocker &workStationLocker)
 {
-    int resId = workStationLocker.Enabled() ? IDI_IDLELOCK : IDI_IDLELOCKOPEN;
-    nidApp.hIcon = LoadIcon(hInstance, (LPCTSTR)MAKEINTRESOURCE(resId));
+    nidApp.hIcon = LoadTrayIcon(workStationLocker.Enabled() ? IDI_IDLELOCK : IDI_IDLELOCKOPEN);
     nidApp.uFlags = NIF_ICON;
     Shell_NotifyIcon(NIM_MODIFY, &nidApp);
+}
+
+
+HICON LoadTrayIcon(int resourceId)
+{
+    LPCTSTR resId = (LPCTSTR) MAKEINTRESOURCE(resourceId);
+    HICON icon;
+
+    if (IsWinVistaOrLater()) {
+        LoadIconMetric(hInstance, resId, LIM_SMALL, &icon);
+    } else {
+        icon = (HICON)LoadImage(hInstance, resId, IMAGE_ICON,
+            GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0);
+    }
+
+    return icon;
 }
 
 
@@ -383,4 +403,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
-// -----------------------------------------------------------------------------
+
+BOOL IsWinVistaOrLater()
+{
+    OSVERSIONINFOEX osvi;
+    ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));
+    osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+    osvi.dwMajorVersion = 6;
+    osvi.dwMinorVersion = 0;
+
+    DWORDLONG dwlConditionMask = 0;
+    VER_SET_CONDITION(dwlConditionMask, VER_MAJORVERSION, VER_GREATER_EQUAL);
+    VER_SET_CONDITION(dwlConditionMask, VER_MINORVERSION, VER_GREATER_EQUAL);
+
+    return VerifyVersionInfo(&osvi,
+        VER_MAJORVERSION | VER_MINORVERSION,
+        dwlConditionMask);
+}
