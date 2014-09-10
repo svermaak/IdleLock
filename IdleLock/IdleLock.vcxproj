@@ -83,12 +83,14 @@
     <None Include="IdleLock.ico" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AboutBox.h" />
     <ClInclude Include="IdleLock.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AboutBox.cpp" />
     <ClCompile Include="IdleLock.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -100,6 +102,7 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="IdelLockOpen.ico" />
+    <Image Include="IdleLockLogo.bmp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

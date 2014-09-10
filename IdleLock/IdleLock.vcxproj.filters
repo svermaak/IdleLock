@@ -32,12 +32,18 @@
     <ClInclude Include="IdleLock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="AboutBox.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="IdleLock.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AboutBox.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -48,6 +54,9 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="IdelLockOpen.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="IdleLockLogo.bmp">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

@@ -11,6 +11,7 @@
 
 
 #include "stdafx.h"
+#include "AboutBox.h"
 #include "IdleLock.h"
 
 // Needs CommCtrl v6 for LoadIconMetric().
@@ -174,7 +175,7 @@ bool TWorkStationLocker::ScreenSaverRunning()
 #define WM_USER_SHELLICON WM_USER + 1
 
 NOTIFYICONDATA      nidApp;
-TCHAR               szTitle[MAX_LOADSTRING];
+TCHAR               szAppTitle[MAX_LOADSTRING];
 TCHAR               szWindowClass[MAX_LOADSTRING];
 HMENU               hPopMenu = NULL;
 HINSTANCE           hInstance = NULL;
@@ -201,7 +202,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
     MSG msg;
 
     // Initialize global strings
-    LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
+    LoadString(hInstance, IDS_APP_TITLE, szAppTitle, MAX_LOADSTRING);
     LoadString(hInstance, IDC_IDLELOCK, szWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
 
@@ -242,21 +243,13 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 }
 
 
-//   FUNCTION: InitInstance(HINSTANCE, int)
-//
-//   PURPOSE: Saves instance handle and creates main window
-//
-//   COMMENTS:
-//
-//        In this function, we save the instance handle in a global variable and
-//        create and display the main program window.
-//
+// Saves instance handle and creates main window.
 BOOL InitInstance(HINSTANCE aHInstance, int nCmdShow)
 {
     hInstance = aHInstance;
 
     HWND hWnd;
-    hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+    hWnd = CreateWindow(szWindowClass, szAppTitle, WS_OVERLAPPEDWINDOW,
        CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, NULL, NULL, hInstance, NULL);
     
     if (!hWnd) {
@@ -269,7 +262,7 @@ BOOL InitInstance(HINSTANCE aHInstance, int nCmdShow)
     nidApp.uID              = TrayIconUId;
     nidApp.uFlags           = NIF_ICON | NIF_MESSAGE | NIF_TIP;
     nidApp.uCallbackMessage = WM_USER_SHELLICON; 
-    wcscpy_s(nidApp.szTip, L"IdleLock");
+    wcscpy_s(nidApp.szTip, szAppTitle);
     Shell_NotifyIcon(NIM_ADD, &nidApp); 
     
     hPopMenu = CreateIdleLockMenu();
@@ -285,9 +278,9 @@ BOOL InitInstance(HINSTANCE aHInstance, int nCmdShow)
 void UpdateTrayIcon(TWorkStationLocker &workStationLocker)
 {
     if (workStationLocker.Enabled())
-        swprintf_s(nidApp.szTip, sizeof nidApp.szTip, L"IdleLock - %d minutes", workStationLocker.GetTimeout() / 60000);
+        swprintf_s(nidApp.szTip, sizeof nidApp.szTip, L"%s - %d minutes", szAppTitle, workStationLocker.GetTimeout() / 60000);
     else
-        swprintf_s(nidApp.szTip, sizeof nidApp.szTip, L"IdleLock - Disabled", workStationLocker.GetTimeout() / 60000);
+        swprintf_s(nidApp.szTip, sizeof nidApp.szTip, L"%s - Disabled", szAppTitle, workStationLocker.GetTimeout() / 60000);
 
     nidApp.hIcon = LoadTrayIcon(workStationLocker.Enabled() ? IDI_IDLELOCK : IDI_IDLELOCKOPEN);
     nidApp.uFlags = NIF_ICON | NIF_TIP;
@@ -327,15 +320,14 @@ HMENU CreateIdleLockMenu()
     AppendMenu(menu, MF_SEPARATOR, 0, L"-");				
     AppendMenu(menu, 0, IDM_REQUIRESCREENSAVER, L"&Only lock if screensaver is active");
     AppendMenu(menu, 0, IDM_DISABLE, L"&Disable");
+    AppendMenu(menu, 0, IDM_ABOUT, L"&About");
+    AppendMenu(menu, MF_SEPARATOR, 0, L"-");
     AppendMenu(menu, 0, IDM_EXIT, L"E&xit");
 
     return menu;
 }
 
-//  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
-//
-//  PURPOSE:  Processes messages for the main window.
-//
+// WndProc for the main window.
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     int wmId, wmEvent;
@@ -372,6 +364,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 case IDM_DISABLE:
                     WorkStationLocker->Enable(!WorkStationLocker->Enabled());
                     UpdateTrayIcon(*WorkStationLocker);
+                    break;
+
+                case IDM_ABOUT:
+                    ShowAboutBox(hInstance, hWnd);
                     break;
 
                 case IDM_EXIT:
