@@ -251,12 +251,12 @@ BOOL InitInstance(HINSTANCE aHInstance, int nCmdShow)
     HWND hWnd;
     hWnd = CreateWindow(szWindowClass, szAppTitle, WS_OVERLAPPEDWINDOW,
        CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, NULL, NULL, hInstance, NULL);
-    
+
     if (!hWnd) {
         return FALSE;
     }
     
-    nidApp.cbSize           = sizeof(NOTIFYICONDATA);
+    nidApp.cbSize           = sizeof NOTIFYICONDATA;
     nidApp.hIcon            = LoadTrayIcon(IDI_IDLELOCK); 
     nidApp.hWnd             = (HWND) hWnd;     // The window which will process this apps messages.
     nidApp.uID              = TrayIconUId;
@@ -264,7 +264,22 @@ BOOL InitInstance(HINSTANCE aHInstance, int nCmdShow)
     nidApp.uCallbackMessage = WM_USER_SHELLICON; 
     wcscpy_s(nidApp.szTip, szAppTitle);
     Shell_NotifyIcon(NIM_ADD, &nidApp); 
-    
+
+///////////////////
+    RECT trayIconRect;
+    NOTIFYICONIDENTIFIER niIdent;
+    niIdent.cbSize = sizeof NOTIFYICONIDENTIFIER;
+    niIdent.hWnd = hWnd;
+    niIdent.uID = TrayIconUId;
+    niIdent.guidItem = GUID_NULL;
+    Shell_NotifyIconGetRect(&niIdent, &trayIconRect);
+
+    HMONITOR monitor = MonitorFromRect(&trayIconRect, MONITOR_DEFAULTTOPRIMARY);
+    MONITORINFO monitorInfo;
+    monitorInfo.cbSize = sizeof MONITORINFO;
+    GetMonitorInfo(monitor, &monitorInfo);
+//////////////////
+
     hPopMenu = CreateIdleLockMenu();
     WorkStationLocker = new TWorkStationLocker();
     UpdateTrayIcon(*WorkStationLocker);
@@ -405,13 +420,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 }
 
 
-BOOL IsWinVistaOrLater()
+BOOL IsWinVersionOrLater(DWORD majorVersion, DWORD minorVersion)
 {
     OSVERSIONINFOEX osvi;
     ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));
     osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
-    osvi.dwMajorVersion = 6;
-    osvi.dwMinorVersion = 0;
+    osvi.dwMajorVersion = majorVersion;
+    osvi.dwMinorVersion = minorVersion;
 
     DWORDLONG dwlConditionMask = 0;
     VER_SET_CONDITION(dwlConditionMask, VER_MAJORVERSION, VER_GREATER_EQUAL);
@@ -420,4 +435,15 @@ BOOL IsWinVistaOrLater()
     return VerifyVersionInfo(&osvi,
         VER_MAJORVERSION | VER_MINORVERSION,
         dwlConditionMask);
+}
+
+
+BOOL IsWinVistaOrLater()
+{
+    return IsWinVersionOrLater(6, 0);
+}
+
+BOOL IsWin7OrLater()
+{
+    return IsWinVersionOrLater(6, 1);
 }
