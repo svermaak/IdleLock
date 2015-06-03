@@ -180,6 +180,7 @@ TCHAR               szWindowClass[MAX_LOADSTRING];
 HMENU               hPopMenu = NULL;
 HINSTANCE           hInstance = NULL;
 TWorkStationLocker *WorkStationLocker;
+double              IconScaling;
 
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
@@ -265,6 +266,55 @@ BOOL InitInstance(HINSTANCE aHInstance, int nCmdShow)
     wcscpy_s(nidApp.szTip, szAppTitle);
     Shell_NotifyIcon(NIM_ADD, &nidApp); 
     
+///////////////////
+    RECT trayIconRect;
+    NOTIFYICONIDENTIFIER niIdent;
+    niIdent.cbSize = sizeof NOTIFYICONIDENTIFIER;
+    niIdent.hWnd = hWnd;
+    niIdent.uID = TrayIconUId;
+    niIdent.guidItem = GUID_NULL;
+    Shell_NotifyIconGetRect(&niIdent, &trayIconRect);  // Only Win7+.
+
+    int iconRectWidth = trayIconRect.right - trayIconRect.left;
+    // When SM_CXSMICON = 16, iconRectWidth is 24.
+    IconScaling = iconRectWidth / 24.;
+/////////////////////////
+/////////////////////////
+    //----------------dead ends------------------
+    HMONITOR monitor = MonitorFromRect(&trayIconRect, MONITOR_DEFAULTTOPRIMARY);
+    MONITORINFO monitorInfo;
+    monitorInfo.cbSize = sizeof MONITORINFO;
+    int gmiRes = GetMonitorInfo(monitor, &monitorInfo);
+
+    int cx = GetSystemMetrics(SM_CXSCREEN);
+    int spc = GetSystemMetrics(SM_CXICONSPACING);
+
+    HDC hdc = GetDC(hWnd);
+    float g_DPIScaleX = GetDeviceCaps(hdc, LOGPIXELSX) / 96.0f;
+    float g_DPIScaleY = GetDeviceCaps(hdc, LOGPIXELSY) / 96.0f;
+    int vr = GetDeviceCaps(hdc, HORZRES);
+    ReleaseDC(hWnd, hdc);
+
+    const int pathInfoLen = 100;
+    UINT32 nPathElems = pathInfoLen;
+    DISPLAYCONFIG_PATH_INFO pathInfos[pathInfoLen];
+    const int modeInfoLen = 100;
+    UINT32 nModeElems = modeInfoLen;
+    DISPLAYCONFIG_MODE_INFO modeInfos[modeInfoLen];
+    auto qdc = QueryDisplayConfig(QDC_ALL_PATHS, &nPathElems, pathInfos, &nModeElems, modeInfos, NULL);
+
+    //GetDPIForMonitor()
+    /*
+        ERROR_SUCCESS The function succeeded.
+        ERROR_INVALID_PARAMETER The combination of parameters and flags that are specified is invalid.
+        ERROR_NOT_SUPPORTED The system is not running a graphics driver that was written according to the Windows Display Driver Model(WDDM).The function is only supported on a system with a WDDM driver running.
+        ERROR_ACCESS_DENIED The caller does not have access to the console session.This error occurs if the calling process does not have access to the current desktop or is running on a remote session.
+        ERROR_GEN_FAILURE An unspecified error occurred.
+        ERROR_INSUFFICIENT_BUFFER
+    */
+
+//////////////////
+
     hPopMenu = CreateIdleLockMenu();
     WorkStationLocker = new TWorkStationLocker();
     UpdateTrayIcon(*WorkStationLocker);
@@ -293,12 +343,14 @@ HICON LoadTrayIcon(int resourceId)
     LPCTSTR resId = (LPCTSTR) MAKEINTRESOURCE(resourceId);
     HICON icon;
 
-    if (IsWinVistaOrLater()) {
-        LoadIconMetric(hInstance, resId, LIM_SMALL, &icon);
-    } else {
-        icon = (HICON)LoadImage(hInstance, resId, IMAGE_ICON,
-            GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0);
-    }
+    int cx = GetSystemMetrics(SM_CXSMICON) * IconScaling;
+    int cy = GetSystemMetrics(SM_CYSMICON) * IconScaling;
+    icon = (HICON) LoadImage(hInstance, resId, IMAGE_ICON, cx, cy, 0);
+
+    //ICONINFO iconInfo;
+    //GetIconInfo(icon, &iconInfo);
+    //BITMAP bmp;
+    //GetObject(iconInfo.hbmColor, sizeof bmp, &bmp);
 
     return icon;
 }
