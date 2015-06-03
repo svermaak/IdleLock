@@ -285,14 +285,16 @@ BOOL InitInstance(HINSTANCE aHInstance, int nCmdShow)
     MONITORINFO monitorInfo;
     monitorInfo.cbSize = sizeof MONITORINFO;
     int gmiRes = GetMonitorInfo(monitor, &monitorInfo);
+    // monitorInfo will now contain logical, not physical pixels. E.g. width will be 1536 pixels for a 1920 wide
+    // monitor scaled up by 25%.
 
-    int cx = GetSystemMetrics(SM_CXSCREEN);
+    int cx = GetSystemMetrics(SM_CXSCREEN); // Returns logical, not physical pixels.
     int spc = GetSystemMetrics(SM_CXICONSPACING);
 
     HDC hdc = GetDC(hWnd);
-    float g_DPIScaleX = GetDeviceCaps(hdc, LOGPIXELSX) / 96.0f;
+    float g_DPIScaleX = GetDeviceCaps(hdc, LOGPIXELSX) / 96.0f;  // 1.00 when real scale is 1.25
     float g_DPIScaleY = GetDeviceCaps(hdc, LOGPIXELSY) / 96.0f;
-    int vr = GetDeviceCaps(hdc, HORZRES);
+    int vr = GetDeviceCaps(hdc, HORZRES);  // Logical, not physical pixels.
     ReleaseDC(hWnd, hdc);
 
     const int pathInfoLen = 100;
@@ -303,7 +305,7 @@ BOOL InitInstance(HINSTANCE aHInstance, int nCmdShow)
     DISPLAYCONFIG_MODE_INFO modeInfos[modeInfoLen];
     auto qdc = QueryDisplayConfig(QDC_ALL_PATHS, &nPathElems, pathInfos, &nModeElems, modeInfos, NULL);
 
-    //GetDPIForMonitor()
+    //GetDPIForMonitor()  - only for >= Win8.1
     /*
         ERROR_SUCCESS The function succeeded.
         ERROR_INVALID_PARAMETER The combination of parameters and flags that are specified is invalid.
