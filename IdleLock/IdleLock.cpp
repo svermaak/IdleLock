@@ -189,7 +189,6 @@ LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 double              GetIconScaling(HWND hWnd);
 void                UpdateTrayIcon(TWorkStationLocker &workStationLocker);
 HICON               LoadTrayIcon(int resourceId);
-BOOL                IsWinVistaOrLater();
 
 
 
@@ -423,33 +422,4 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             return DefWindowProc(hWnd, message, wParam, lParam);
     }
     return 0;
-}
-
-
-BOOL IsWinVersionOrLater(DWORD majorVersion, DWORD minorVersion)
-{
-    OSVERSIONINFOEX osvi;
-    ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));
-    osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
-    osvi.dwMajorVersion = majorVersion;
-    osvi.dwMinorVersion = minorVersion;
-
-    DWORDLONG dwlConditionMask = 0;
-    VER_SET_CONDITION(dwlConditionMask, VER_MAJORVERSION, VER_GREATER_EQUAL);
-    VER_SET_CONDITION(dwlConditionMask, VER_MINORVERSION, VER_GREATER_EQUAL);
-
-    return VerifyVersionInfo(&osvi,
-        VER_MAJORVERSION | VER_MINORVERSION,
-        dwlConditionMask);
-}
-
-
-BOOL IsWinVistaOrLater()
-{
-    return IsWinVersionOrLater(6, 0);
-}
-
-BOOL IsWin7OrLater()
-{
-    return IsWinVersionOrLater(6, 1);
 }
