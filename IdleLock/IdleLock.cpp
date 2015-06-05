@@ -186,6 +186,7 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 HMENU               CreateIdleLockMenu();
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
+double              GetIconScaling(HWND hWnd);
 void                UpdateTrayIcon(TWorkStationLocker &workStationLocker);
 HICON               LoadTrayIcon(int resourceId);
 BOOL                IsWinVistaOrLater();
@@ -266,7 +267,20 @@ BOOL InitInstance(HINSTANCE aHInstance, int nCmdShow)
     wcscpy_s(nidApp.szTip, szAppTitle);
     Shell_NotifyIcon(NIM_ADD, &nidApp); 
 
-///////////////////
+    IconScaling = GetIconScaling(hWnd);
+
+    hPopMenu = CreateIdleLockMenu();
+    WorkStationLocker = new TWorkStationLocker();
+    UpdateTrayIcon(*WorkStationLocker);
+    // Send us WM_TIMER messages every <CheckTimeoutInterval> seconds.
+    SetTimer(hWnd, 1, CheckTimeoutInterval, NULL);
+    
+    return TRUE;
+}
+
+
+double GetIconScaling(HWND hWnd)
+{
     RECT trayIconRect;
     NOTIFYICONIDENTIFIER niIdent;
     niIdent.cbSize = sizeof NOTIFYICONIDENTIFIER;
@@ -276,54 +290,12 @@ BOOL InitInstance(HINSTANCE aHInstance, int nCmdShow)
     Shell_NotifyIconGetRect(&niIdent, &trayIconRect);  // Only Win7+.
 
     int iconRectWidth = trayIconRect.right - trayIconRect.left;
-    // When SM_CXSMICON = 16, iconRectWidth is 24.
-    IconScaling = iconRectWidth / 24.;
-/////////////////////////
-/////////////////////////
-    //----------------dead ends------------------
-    HMONITOR monitor = MonitorFromRect(&trayIconRect, MONITOR_DEFAULTTOPRIMARY);
-    MONITORINFO monitorInfo;
-    monitorInfo.cbSize = sizeof MONITORINFO;
-    int gmiRes = GetMonitorInfo(monitor, &monitorInfo);
-    // monitorInfo will now contain logical, not physical pixels. E.g. width will be 1536 pixels for a 1920 wide
-    // monitor scaled up by 25%.
-
-    int cx = GetSystemMetrics(SM_CXSCREEN); // Returns logical, not physical pixels.
-    int spc = GetSystemMetrics(SM_CXICONSPACING);
-
-    HDC hdc = GetDC(hWnd);
-    float g_DPIScaleX = GetDeviceCaps(hdc, LOGPIXELSX) / 96.0f;  // 1.00 when real scale is 1.25
-    float g_DPIScaleY = GetDeviceCaps(hdc, LOGPIXELSY) / 96.0f;
-    int vr = GetDeviceCaps(hdc, HORZRES);  // Logical, not physical pixels.
-    ReleaseDC(hWnd, hdc);
-
-    const int pathInfoLen = 100;
-    UINT32 nPathElems = pathInfoLen;
-    DISPLAYCONFIG_PATH_INFO pathInfos[pathInfoLen];
-    const int modeInfoLen = 100;
-    UINT32 nModeElems = modeInfoLen;
-    DISPLAYCONFIG_MODE_INFO modeInfos[modeInfoLen];
-    auto qdc = QueryDisplayConfig(QDC_ALL_PATHS, &nPathElems, pathInfos, &nModeElems, modeInfos, NULL);
-
-    //GetDPIForMonitor()  - only for >= Win8.1
-    /*
-        ERROR_SUCCESS The function succeeded.
-        ERROR_INVALID_PARAMETER The combination of parameters and flags that are specified is invalid.
-        ERROR_NOT_SUPPORTED The system is not running a graphics driver that was written according to the Windows Display Driver Model(WDDM).The function is only supported on a system with a WDDM driver running.
-        ERROR_ACCESS_DENIED The caller does not have access to the console session.This error occurs if the calling process does not have access to the current desktop or is running on a remote session.
-        ERROR_GEN_FAILURE An unspecified error occurred.
-        ERROR_INSUFFICIENT_BUFFER
-    */
-
-//////////////////
-
-    hPopMenu = CreateIdleLockMenu();
-    WorkStationLocker = new TWorkStationLocker();
-    UpdateTrayIcon(*WorkStationLocker);
-    // Send us WM_TIMER messages every <CheckTimeoutInterval> seconds.
-    SetTimer(hWnd, 1, CheckTimeoutInterval, NULL);
-    
-    return TRUE;
+    // When DPI scaling is active, SM_CXSMICON is always 16 
+    // (https://msdn.microsoft.com/en-us/library/ms701681%28v=vs.85%29.aspx).
+    // If the icon is 16 in reality (96 dpi true), iconRectWidth is 24.
+    return GetSystemMetrics(SM_CXSMICON) == 16 ?
+        IconScaling = iconRectWidth / 24.
+        : IconScaling = 1.;
 }
 
 
@@ -345,14 +317,9 @@ HICON LoadTrayIcon(int resourceId)
     LPCTSTR resId = (LPCTSTR) MAKEINTRESOURCE(resourceId);
     HICON icon;
 
-    int cx = GetSystemMetrics(SM_CXSMICON) * IconScaling;
-    int cy = GetSystemMetrics(SM_CYSMICON) * IconScaling;
+    int cx = int(GetSystemMetrics(SM_CXSMICON) * IconScaling);
+    int cy = int(GetSystemMetrics(SM_CYSMICON) * IconScaling);
     icon = (HICON) LoadImage(hInstance, resId, IMAGE_ICON, cx, cy, 0);
-
-    //ICONINFO iconInfo;
-    //GetIconInfo(icon, &iconInfo);
-    //BITMAP bmp;
-    //GetObject(iconInfo.hbmColor, sizeof bmp, &bmp);
 
     return icon;
 }
