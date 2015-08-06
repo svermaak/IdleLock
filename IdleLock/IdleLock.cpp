@@ -11,6 +11,7 @@
 
 
 #include "stdafx.h"
+#include "wtsapi32.h"
 #include "AboutBox.h"
 #include "IdleLock.h"
 
@@ -29,12 +30,15 @@ static const int TrayIconUId = 100;
 class TWorkStationLocker
 {
 public:
-    TWorkStationLocker() : idleTimeout() 
-    {
-        ReadSettings();
-    }
+    TWorkStationLocker(HWND hWnd);
+    ~TWorkStationLocker();
 
     void LockIfIdleTimeout();
+
+    void ReportUnlock()
+    {
+        unlockedTick = GetTickCount();
+    }
 
     void SetTimeout(int aIdleTimeout)
     {
@@ -73,12 +77,30 @@ protected:
     void  ReadSettings();
     void  WriteSettings();
     bool  ScreenSaverRunning();
-          
+
+    HWND  hMsgTargetWnd;
     int   idleTimeout;
     bool  requireScreenSaver;
     bool  enabled;
     DWORD screenSaverActiveAt;  // The idleTime at which the screensaver was seen as active.
+    DWORD unlockedTick;  // The tick count at which the computer was unlocked.
 };
+
+
+TWorkStationLocker::TWorkStationLocker(HWND hWnd) : 
+    idleTimeout(DefaultTimeout), 
+    hMsgTargetWnd(hWnd), 
+    unlockedTick(0)
+{
+    ReadSettings();
+    WTSRegisterSessionNotification(hMsgTargetWnd, NOTIFY_FOR_ALL_SESSIONS);
+}
+
+
+TWorkStationLocker::~TWorkStationLocker()
+{
+    WTSUnRegisterSessionNotification(hMsgTargetWnd);
+}
 
 
 void TWorkStationLocker::LockIfIdleTimeout()
@@ -94,10 +116,15 @@ void TWorkStationLocker::LockIfIdleTimeout()
 
     // Get idle time, with a check for systemUpticks integer wraparound
     // (which occurs after about 48.8 days).
+    DWORD lastUserActionTick = lastInputInfo.dwTime < 0 && unlockedTick >= 0
+        ? lastInputInfo.dwTime  // if wraparound
+        : max(lastInputInfo.dwTime, unlockedTick);
+
+
     DWORD systemUpticks = GetTickCount();
-    DWORD idleTime = lastInputInfo.dwTime <= systemUpticks 
-            ? systemUpticks - lastInputInfo.dwTime
-            : (ULONG_MAX - lastInputInfo.dwTime) + 1 + systemUpticks;
+    DWORD idleTime = lastUserActionTick <= systemUpticks
+            ? systemUpticks - lastUserActionTick
+            : (ULONG_MAX - lastUserActionTick) + 1 + systemUpticks;
 
     // Indicate that screensaver has been started.
     // If the monitor goes into power save mode, ScreenSaverRunning() will
@@ -212,12 +239,17 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
         return FALSE;
     }
 
-    // Main message loop:
-    while (GetMessage(&msg, NULL, 0, 0)) {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-    }
+    {
+        TWorkStationLocker wl(nidApp.hWnd);
+        WorkStationLocker = &wl;
+        UpdateTrayIcon(*WorkStationLocker);
 
+        // Main message loop:
+        while (GetMessage(&msg, NULL, 0, 0)) {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+    }
     return (int) msg.wParam;
 }
 
@@ -269,8 +301,6 @@ BOOL InitInstance(HINSTANCE aHInstance, int nCmdShow)
     IconScaling = GetIconScaling(hWnd);
 
     hPopMenu = CreateIdleLockMenu();
-    WorkStationLocker = new TWorkStationLocker();
-    UpdateTrayIcon(*WorkStationLocker);
     // Send us WM_TIMER messages every <CheckTimeoutInterval> seconds.
     SetTimer(hWnd, 1, CheckTimeoutInterval, NULL);
     
@@ -303,7 +333,7 @@ void UpdateTrayIcon(TWorkStationLocker &workStationLocker)
     if (workStationLocker.Enabled())
         swprintf_s(nidApp.szTip, sizeof nidApp.szTip, L"%s - %d minutes", szAppTitle, workStationLocker.GetTimeout() / 60000);
     else
-        swprintf_s(nidApp.szTip, sizeof nidApp.szTip, L"%s - Disabled", szAppTitle, workStationLocker.GetTimeout() / 60000);
+        swprintf_s(nidApp.szTip, sizeof nidApp.szTip, L"%s - Disabled", szAppTitle);
 
     nidApp.hIcon = LoadTrayIcon(workStationLocker.Enabled() ? IDI_IDLELOCK : IDI_IDLELOCKOPEN);
     nidApp.uFlags = NIF_ICON | NIF_TIP;
@@ -411,6 +441,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         case WM_TIMER:
             WorkStationLocker->LockIfIdleTimeout();
+            break;
+
+        case WM_WTSSESSION_CHANGE:
+            if (wParam = WTS_SESSION_UNLOCK) {
+                WorkStationLocker->ReportUnlock();
+            }
             break;
 
         case WM_DESTROY:
