@@ -38,6 +38,7 @@ public:
     void ReportUnlock()
     {
         unlockedTick = GetTickCount();
+        screenSaverActiveAt = 0L;
     }
 
     void SetTimeout(int aIdleTimeout)
