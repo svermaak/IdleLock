@@ -13,7 +13,7 @@ void ShowAboutBox(HINSTANCE hInst, HWND hWnd) {
 }
 
 
-BOOL CALLBACK AboutDlgProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
+BOOL CALLBACK AboutDlgProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM )
 {
     switch (Message) {
         case WM_INITDIALOG:
@@ -43,9 +43,6 @@ void CenterDialog(HWND hWnd)
     HWND desktop = GetDesktopWindow();
     GetWindowRect(desktop, &desktopRc);
     GetWindowRect(hWnd, &dlgRc);
-
-    int x = (desktopRc.right - dlgRc.right) / 2;
-    int y = (desktopRc.bottom - dlgRc.bottom) / 2;
 
     SetWindowPos(hWnd,
                  HWND_TOP,

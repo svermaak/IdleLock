@@ -35,8 +35,14 @@ public:
 
     void LockIfIdleTimeout();
 
+    void ReportLock()
+    {
+        isLocked = true;
+    }
+
     void ReportUnlock()
     {
+        isLocked = false;
         unlockedTick = GetTickCount();
         screenSaverActiveAt = 0L;
     }
@@ -80,21 +86,19 @@ protected:
     bool  ScreenSaverRunning();
 
     HWND  hMsgTargetWnd;
-    int   idleTimeout;
+    int   idleTimeout = DefaultTimeout;
     bool  requireScreenSaver;
     bool  enabled;
+    bool  isLocked = false;
     DWORD screenSaverActiveAt;  // The idleTime at which the screensaver was seen as active.
-    DWORD unlockedTick;  // The tick count at which the computer was unlocked.
+    DWORD unlockedTick = 0;  // The tick count at which the computer was unlocked.
 };
 
 
-TWorkStationLocker::TWorkStationLocker(HWND hWnd) : 
-    idleTimeout(DefaultTimeout), 
-    hMsgTargetWnd(hWnd), 
-    unlockedTick(0)
+TWorkStationLocker::TWorkStationLocker(HWND hWnd) : hMsgTargetWnd(hWnd)
 {
     ReadSettings();
-    WTSRegisterSessionNotification(hMsgTargetWnd, NOTIFY_FOR_ALL_SESSIONS);
+    WTSRegisterSessionNotification(hMsgTargetWnd, NOTIFY_FOR_THIS_SESSION);
 }
 
 
@@ -141,8 +145,10 @@ void TWorkStationLocker::LockIfIdleTimeout()
 
     // Lock if timeout, but never sooner than after 60 sec as a safeguard.
     if (idleTime > 60000 && idleTime >= (DWORD)idleTimeout
-      && (!IsScreenSaverRequired() || screenSaverActiveAt != 0))
-        LockWorkStation();  // If the wrkstn is already locked, nothing happens.
+        && (!IsScreenSaverRequired() || screenSaverActiveAt != 0)
+        && !isLocked) {  // If the wrkstn is already locked, Win7 sometimes cancels the screensaver.
+        LockWorkStation();
+    }
 }
 
 
@@ -216,7 +222,7 @@ HMENU               CreateIdleLockMenu();
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 double              GetIconScaling(HWND hWnd);
 void                UpdateTrayIcon(TWorkStationLocker &workStationLocker);
-HICON               LoadTrayIcon(int resourceId);
+HICON               LoadTrayIcon(HINSTANCE hInstance, int resourceId);
 
 
 
@@ -291,7 +297,7 @@ BOOL InitInstance(HINSTANCE aHInstance, int nCmdShow)
     }
     
     nidApp.cbSize           = sizeof NOTIFYICONDATA;
-    nidApp.hIcon            = LoadTrayIcon(IDI_IDLELOCK); 
+    nidApp.hIcon            = LoadTrayIcon(hInstance, IDI_IDLELOCK); 
     nidApp.hWnd             = (HWND) hWnd;     // The window which will process this apps messages.
     nidApp.uID              = TrayIconUId;
     nidApp.uFlags           = NIF_ICON | NIF_MESSAGE | NIF_TIP;
@@ -336,13 +342,13 @@ void UpdateTrayIcon(TWorkStationLocker &workStationLocker)
     else
         swprintf_s(nidApp.szTip, sizeof nidApp.szTip, L"%s - Disabled", szAppTitle);
 
-    nidApp.hIcon = LoadTrayIcon(workStationLocker.Enabled() ? IDI_IDLELOCK : IDI_IDLELOCKOPEN);
+    nidApp.hIcon = LoadTrayIcon(hInstance, workStationLocker.Enabled() ? IDI_IDLELOCK : IDI_IDLELOCKOPEN);
     nidApp.uFlags = NIF_ICON | NIF_TIP;
     Shell_NotifyIcon(NIM_MODIFY, &nidApp);
 }
 
 
-HICON LoadTrayIcon(int resourceId)
+HICON LoadTrayIcon(HINSTANCE hInstance, int resourceId)
 {
     LPCTSTR resId = (LPCTSTR) MAKEINTRESOURCE(resourceId);
     HICON icon;
@@ -445,8 +451,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
 
         case WM_WTSSESSION_CHANGE:
-            if (wParam = WTS_SESSION_UNLOCK) {
+            if (wParam == WTS_SESSION_UNLOCK) {
                 WorkStationLocker->ReportUnlock();
+            } else if (wParam == WTS_SESSION_LOCK) {
+                WorkStationLocker->ReportLock();
             }
             break;
 
