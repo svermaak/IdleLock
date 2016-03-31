@@ -86,7 +86,7 @@ protected:
     bool  requireScreenSaver;
     bool  enabled;
     bool  isLocked = false;
-    DWORD screenSaverActiveAt;  // The idleTime at which the screensaver was seen as active.
+    DWORD screenSaverActiveAt = 0;  // The idleTime at which the screensaver was seen as active.
     DWORD unlockedTick = 0;  // The tick count at which the computer was unlocked.
 };
 
