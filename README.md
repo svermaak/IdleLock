@@ -12,3 +12,11 @@ flaw, I whipped up IdleLock, a small utility that locks your PC after a selectab
 of user inactivity.
 
 <a href="http://blog.wezeku.com/2014/03/14/idlelock-a-utility-to-lock-your-pc-after-x-minutes-of-idle-time/" target="_blank">See this blog post for more information.</a>
+
+Logging
+-------
+
+For debugging purposes, IdleLock has rudimentary logging. Specify the -logfile option to
+enable logging, for example
+
+idlelock -logfile c:\myfolder\mylogfile.log

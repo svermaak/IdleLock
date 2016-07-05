@@ -4,24 +4,28 @@
 #include "stdafx.h"
 #include "wtsapi32.h"
 
+#include "Logger.h"
+
 
 class TWorkStationLocker
 {
 public:
     static const int DefaultTimeout = 20 * 60000;
 
-    TWorkStationLocker(HWND hWnd);
+    TWorkStationLocker(HWND hWnd, TLogger &logger);
     ~TWorkStationLocker();
 
     void LockIfIdleTimeout();
 
     void ReportLock()
     {
+        Logger.Log(L"Workstation locked.");
         isLocked = true;
     }
 
     void ReportUnlock()
     {
+        Logger.Log(L"Workstation unlocked.");
         isLocked = false;
         unlockedTick = GetTickCount();
         screenSaverActiveAt = 0L;
@@ -66,6 +70,7 @@ protected:
     bool  ScreenSaverRunning();
 
     HWND  hMsgTargetWnd;
+    TLogger &Logger;
     int   idleTimeout = DefaultTimeout;
     bool  requireScreenSaver;
     bool  enabled;

@@ -5,7 +5,7 @@
 static const wchar_t *AppRegKeyName = L"Software\\Wezeku\\IdleLock";
 
 
-TWorkStationLocker::TWorkStationLocker(HWND hWnd) : hMsgTargetWnd(hWnd)
+TWorkStationLocker::TWorkStationLocker(HWND hWnd, TLogger &logger) : hMsgTargetWnd(hWnd), Logger(logger)
 {
     ReadSettings();
     WTSRegisterSessionNotification(hMsgTargetWnd, NOTIFY_FOR_THIS_SESSION);
@@ -45,8 +45,10 @@ void TWorkStationLocker::LockIfIdleTimeout()
     // If the monitor goes into power save mode, ScreenSaverRunning() will
     // return false, so we need to remember that the screensaver was actually 
     // activated at some point.
-    if (screenSaverActiveAt == 0 && ScreenSaverRunning())
+    if (screenSaverActiveAt == 0 && ScreenSaverRunning()) {
+        Logger.Log(L"Screensaver start detected.");
         screenSaverActiveAt = idleTime;
+    }
     // If there have been events since the last ativation of the screensaver,
     // we're no longer in screensaver/moniton power save mode, so clear
     // screensaver status.

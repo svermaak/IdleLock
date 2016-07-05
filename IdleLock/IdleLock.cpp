@@ -15,6 +15,7 @@
 #include "AboutBox.h"
 #include "IdleLock.h"
 
+#include "Logger.h"
 #include "WorkStationLocker.h"
 
 // -----------------------------------------------------------------------------
@@ -34,7 +35,8 @@ TCHAR               szAppTitle[MAX_LOADSTRING];
 TCHAR               szWindowClass[MAX_LOADSTRING];
 HMENU               hPopMenu = NULL;
 HINSTANCE           hInstance = NULL;
-TWorkStationLocker *WorkStationLocker;
+TWorkStationLocker *WorkStationLocker = NULL;
+TLogger            *Logger = NULL;
 double              IconScaling;
 
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -53,7 +55,14 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
                        int       nCmdShow)
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
-    UNREFERENCED_PARAMETER(lpCmdLine);
+
+    int argc;
+    LPWSTR *argv = CommandLineToArgvW(lpCmdLine, &argc);
+    if (argc == 2 && lstrcmpiW(argv[0], L"-logfile") == 0) {
+        Logger = new TLogger(argv[1]);
+    } else {
+        Logger = new TLogger(); 
+    }
 
     MSG msg;
 
@@ -68,7 +77,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
     }
 
     {
-        TWorkStationLocker wl(nidApp.hWnd);
+
+        TWorkStationLocker wl(nidApp.hWnd, *Logger);
         WorkStationLocker = &wl;
         UpdateTrayIcon(*WorkStationLocker);
 
@@ -78,6 +88,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
             DispatchMessage(&msg);
         }
     }
+
+    delete Logger;
+
     return (int) msg.wParam;
 }
 
